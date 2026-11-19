@@ -1,0 +1,176 @@
+<div data-role="page" class="page type-interior pluginConfigurationPage withTabs" data-helpurl="" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div class="content-primary">
+        <div class="verticalSection">
+            <div class="sectionTitleContainer flex align-items-center">
+                <h2 class="sectionTitle">TMDb &amp; IMDb Sync Configuration</h2>
+            </div>
+            <p>Synchronize your movie watched history and favorites between Emby, The Movie Database (TMDb), and IMDb.</p>
+        </div>
+
+        <form id="tmdbImdbSyncForm">
+            <!-- Global Configuration Section -->
+            <div class="verticalSection">
+                <h3 class="sectionTitle">Global Settings</h3>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtTmdbAppReadToken">TMDb API Read Access Token (v4 Bearer) or API Key:</label>
+                    <input is="emby-input" type="password" id="txtTmdbAppReadToken" name="TmdbAppReadAccessToken" autocomplete="off" />
+                    <div class="fieldDescription">Optional if using standard credentials, or enter your TMDb v4 Read Access Token from themoviedb.org/settings/api.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="numDebounceSeconds">Debounce Time (Seconds):</label>
+                    <input is="emby-input" type="number" id="numDebounceSeconds" name="DebounceSeconds" min="1" max="60" value="2" />
+                    <div class="fieldDescription">Time to wait before pushing playback/favorite changes to avoid duplicate requests during rapid clicks.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkMirrorRemovals" name="MirrorRemovalsOnFullSync" />
+                        <span>Mirror Removals during Scheduled Full Sync</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">If checked, items removed/unfavorited locally in Emby will be removed from TMDb during scheduled full syncs. Defaults to disabled (additive-only) to protect your remote history.</div>
+                </div>
+            </div>
+
+            <!-- User Selector Section -->
+            <div class="verticalSection">
+                <h3 class="sectionTitle">User Sync Settings</h3>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="selectEmbyUser">Select Emby User:</label>
+                    <select is="emby-select" id="selectEmbyUser"></select>
+                    <div class="fieldDescription">Each Emby user can be linked to their own individual TMDb and IMDb accounts.</div>
+                </div>
+            </div>
+
+            <!-- TMDb User Section -->
+            <div class="verticalSection" id="sectionTmdb">
+                <h3 class="sectionTitle">The Movie Database (TMDb)</h3>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkEnableTmdb" />
+                        <span>Enable TMDb Sync for this user</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer" style="margin-left: 1.5em;">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkSyncTmdbFavorites" />
+                        <span>Sync Favorites to TMDb Favorites</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer" style="margin-left: 1.5em;">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkSyncTmdbWatched" />
+                        <span>Sync Watched Movies to TMDb List</span>
+                    </label>
+                </div>
+
+                <div style="background: rgba(0, 0, 0, 0.15); padding: 1em; border-radius: 6px; margin: 1em 0;">
+                    <h4 style="margin-top: 0;">TMDb Credential Login</h4>
+                    <p style="font-size: 0.9em; opacity: 0.85;">Log in directly using your TMDb account credentials. A secure session token and watched list will be created automatically.</p>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="txtTmdbUsername">TMDb Username:</label>
+                        <input is="emby-input" type="text" id="txtTmdbUsername" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="txtTmdbPassword">TMDb Password:</label>
+                        <input is="emby-input" type="password" id="txtTmdbPassword" autocomplete="off" />
+                    </div>
+
+                    <div style="margin: 0.5em 0;">
+                        <button is="emby-button" type="button" class="raised button-accent" id="btnTmdbLogin">
+                            <span>Log In to TMDb</span>
+                        </button>
+                        <span id="tmdbLoginStatus" style="margin-left: 1em; font-weight: bold;"></span>
+                    </div>
+
+                    <div style="margin-top: 1em; font-size: 0.9em;">
+                        <strong>Connected Account:</strong> <span id="lblTmdbConnectedUser">Not connected</span><br />
+                        <strong>Session Status:</strong> <span id="lblTmdbSessionStatus">None</span>
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtTmdbWatchedListId">TMDb Watched List ID:</label>
+                    <input is="emby-input" type="number" id="txtTmdbWatchedListId" placeholder="Created automatically upon login" />
+                    <div class="fieldDescription">The TMDb List ID used for watched movies (e.g., 'Emby Watched Movies'). Auto-generated when you log in.</div>
+                </div>
+
+                <button is="emby-button" type="button" class="raised" id="btnTestTmdb">
+                    <span>Test TMDb Connection</span>
+                </button>
+                <span id="tmdbTestStatus" style="margin-left: 1em;"></span>
+            </div>
+
+            <!-- IMDb User Section -->
+            <div class="verticalSection" id="sectionImdb">
+                <h3 class="sectionTitle">Internet Movie Database (IMDb)</h3>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkEnableImdb" />
+                        <span>Enable IMDb Sync for this user</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer" style="margin-left: 1.5em;">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkSyncImdbWatched" />
+                        <span>Sync Watched Movies to IMDb Watched status</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer" style="margin-left: 1.5em;">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkSyncImdbFavorites" />
+                        <span>Sync Favorites to IMDb Favorites List</span>
+                    </label>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtImdbCookie">IMDb Session Cookie:</label>
+                    <textarea is="emby-input" id="txtImdbCookie" rows="3" style="font-family: monospace; font-size: 0.85em;" placeholder="at-main=...; ubid-main=...;"></textarea>
+                    <div class="fieldDescription">
+                        Log in to <strong>imdb.com</strong> in your browser, open DevTools (F12) &rarr; Application &rarr; Cookies &rarr; https://www.imdb.com, and copy the <strong>at-main</strong> and <strong>ubid-main</strong> cookies (or paste your full raw Cookie header).
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtImdbFavoritesListId">IMDb Favorites List ID (ls...):</label>
+                    <input is="emby-input" type="text" id="txtImdbFavoritesListId" placeholder="ls123456789" />
+                    <div class="fieldDescription">The IMDb list ID for favorited movies. Click below to create one automatically on your IMDb account.</div>
+                </div>
+
+                <div style="margin: 0.5em 0;">
+                    <button is="emby-button" type="button" class="raised" id="btnCreateImdbList">
+                        <span>Create 'Emby Favorites' List on IMDb</span>
+                    </button>
+                    <button is="emby-button" type="button" class="raised" id="btnTestImdb" style="margin-left: 0.5em;">
+                        <span>Test IMDb Connection</span>
+                    </button>
+                    <span id="imdbActionStatus" style="margin-left: 1em; font-weight: bold;"></span>
+                </div>
+
+                <div style="margin-top: 0.5em; font-size: 0.9em;">
+                    <strong>IMDb Status:</strong> <span id="lblImdbStatus">Not Tested</span>
+                </div>
+            </div>
+
+            <!-- Bottom Action Buttons -->
+            <div class="verticalSection" style="margin-top: 2em; padding-top: 1em; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <button is="emby-button" type="submit" class="raised button-submit block">
+                    <span>Save Settings</span>
+                </button>
+                <button is="emby-button" type="button" class="raised block" id="btnSyncNow" style="margin-top: 1em;">
+                    <span>Sync Now (Selected User)</span>
+                </button>
+                <div id="saveResult" style="margin-top: 1em; text-align: center; font-weight: bold;"></div>
+            </div>
+        </form>
+    </div>
+</div>
