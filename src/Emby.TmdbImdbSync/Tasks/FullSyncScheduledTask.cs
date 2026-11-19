@@ -204,7 +204,8 @@ namespace Emby.TmdbImdbSync.Tasks
                 }
 
                 // 2. Reconcile IMDb
-                if (userConfig.EnableImdbSync && !string.IsNullOrWhiteSpace(userConfig.ImdbCookie) && !string.IsNullOrWhiteSpace(imdbId))
+                var effectiveImdbCookie = userConfig.GetEffectiveImdbCookie();
+                if (userConfig.EnableImdbSync && !string.IsNullOrWhiteSpace(effectiveImdbCookie) && !string.IsNullOrWhiteSpace(imdbId))
                 {
                     var stateKey = movie.InternalId.ToString();
                     userState.Movies.TryGetValue(stateKey, out var lastSynced);
@@ -214,7 +215,7 @@ namespace Emby.TmdbImdbSync.Tasks
                         var favChanged = lastSynced == null || lastSynced.IsFavorite != isFavorite;
                         if (favChanged && isFavorite)
                         {
-                            var res = await entryPoint.ImdbClient.AddItemToListAsync(embyUserId, userConfig.ImdbCookie, userConfig.ImdbFavoritesListId, imdbId, cancellationToken).ConfigureAwait(false);
+                            var res = await entryPoint.ImdbClient.AddItemToListAsync(embyUserId, effectiveImdbCookie, userConfig.ImdbFavoritesListId, imdbId, cancellationToken).ConfigureAwait(false);
                             if (res.AuthExpired)
                             {
                                 userConfig.ImdbLastStatus = "Cookie expired - please refresh";
@@ -228,7 +229,7 @@ namespace Emby.TmdbImdbSync.Tasks
                         var playedChanged = lastSynced == null || lastSynced.IsPlayed != isPlayed;
                         if (playedChanged && isPlayed)
                         {
-                            var res = await entryPoint.ImdbClient.SetTitleWatchedAsync(embyUserId, userConfig.ImdbCookie, imdbId, true, cancellationToken).ConfigureAwait(false);
+                            var res = await entryPoint.ImdbClient.SetTitleWatchedAsync(embyUserId, effectiveImdbCookie, imdbId, true, cancellationToken).ConfigureAwait(false);
                             if (res.AuthExpired)
                             {
                                 userConfig.ImdbLastStatus = "Cookie expired - please refresh";

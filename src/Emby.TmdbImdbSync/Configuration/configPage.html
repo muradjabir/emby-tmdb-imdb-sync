@@ -133,10 +133,18 @@
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel" for="txtImdbCookie">IMDb Session Cookie:</label>
-                    <textarea is="emby-input" id="txtImdbCookie" rows="3" style="font-family: monospace; font-size: 0.85em;" placeholder="at-main=...; ubid-main=...;"></textarea>
+                    <label class="inputLabel" for="txtImdbAtMain">IMDb 'at-main' Cookie:</label>
+                    <textarea is="emby-input" id="txtImdbAtMain" rows="2" style="font-family: monospace; font-size: 0.85em;" placeholder="Atza|..."></textarea>
                     <div class="fieldDescription">
-                        Log in to <strong>imdb.com</strong> in your browser, open DevTools (F12) &rarr; Application &rarr; Cookies &rarr; https://www.imdb.com, and copy the <strong>at-main</strong> and <strong>ubid-main</strong> cookies (or paste your full raw Cookie header).
+                        Paste the value of the <strong>at-main</strong> cookie from imdb.com (or paste full 'at-main=...').
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel" for="txtImdbUbidMain">IMDb 'ubid-main' Cookie:</label>
+                    <input is="emby-input" type="text" id="txtImdbUbidMain" style="font-family: monospace; font-size: 0.85em;" placeholder="e.g. 130-8118143-8112455" />
+                    <div class="fieldDescription">
+                        Paste the value of the <strong>ubid-main</strong> cookie from imdb.com (or paste full 'ubid-main=...').
                     </div>
                 </div>
 

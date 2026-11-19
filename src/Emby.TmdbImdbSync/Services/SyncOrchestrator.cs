@@ -142,7 +142,8 @@ namespace Emby.TmdbImdbSync.Services
                 }
 
                 // 2. IMDb Sync (Isolated from TMDb)
-                if (userConfig.EnableImdbSync && !string.IsNullOrWhiteSpace(userConfig.ImdbCookie) && !string.IsNullOrWhiteSpace(resolvedImdbId))
+                var effectiveImdbCookie = userConfig.GetEffectiveImdbCookie();
+                if (userConfig.EnableImdbSync && !string.IsNullOrWhiteSpace(effectiveImdbCookie) && !string.IsNullOrWhiteSpace(resolvedImdbId))
                 {
                     try
                     {
@@ -151,11 +152,11 @@ namespace Emby.TmdbImdbSync.Services
                             ImdbClientResult<bool> favRes;
                             if (item.IsFavorite)
                             {
-                                favRes = await _imdbClient.AddItemToListAsync(userConfig.EmbyUserId, userConfig.ImdbCookie, userConfig.ImdbFavoritesListId, resolvedImdbId, cancellationToken).ConfigureAwait(false);
+                                favRes = await _imdbClient.AddItemToListAsync(userConfig.EmbyUserId, effectiveImdbCookie, userConfig.ImdbFavoritesListId, resolvedImdbId, cancellationToken).ConfigureAwait(false);
                             }
                             else
                             {
-                                favRes = await _imdbClient.RemoveItemFromListAsync(userConfig.EmbyUserId, userConfig.ImdbCookie, userConfig.ImdbFavoritesListId, resolvedImdbId, cancellationToken).ConfigureAwait(false);
+                                favRes = await _imdbClient.RemoveItemFromListAsync(userConfig.EmbyUserId, effectiveImdbCookie, userConfig.ImdbFavoritesListId, resolvedImdbId, cancellationToken).ConfigureAwait(false);
                             }
 
                             if (favRes.AuthExpired)
@@ -171,7 +172,7 @@ namespace Emby.TmdbImdbSync.Services
 
                         if (userConfig.SyncImdbWatched && playedChanged)
                         {
-                            var watchRes = await _imdbClient.SetTitleWatchedAsync(userConfig.EmbyUserId, userConfig.ImdbCookie, resolvedImdbId, item.IsPlayed, cancellationToken).ConfigureAwait(false);
+                            var watchRes = await _imdbClient.SetTitleWatchedAsync(userConfig.EmbyUserId, effectiveImdbCookie, resolvedImdbId, item.IsPlayed, cancellationToken).ConfigureAwait(false);
                             if (watchRes.AuthExpired)
                             {
                                 HandleImdbAuthExpired(userConfig);

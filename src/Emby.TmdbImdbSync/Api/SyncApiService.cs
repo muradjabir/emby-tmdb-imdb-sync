@@ -129,12 +129,13 @@ namespace Emby.TmdbImdbSync.Api
 
             var config = Plugin.Instance?.Configuration;
             var user = config?.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
-            if (user == null || string.IsNullOrWhiteSpace(user.ImdbCookie))
+            var cookie = user?.GetEffectiveImdbCookie();
+            if (user == null || string.IsNullOrWhiteSpace(cookie))
             {
                 return new ImdbCreateListResponse { Success = false, ErrorMessage = "IMDb cookie is missing for this user." };
             }
 
-            var res = await entryPoint.ImdbClient.CreateListAsync(user.EmbyUserId, user.ImdbCookie, request.ListName, CancellationToken.None).ConfigureAwait(false);
+            var res = await entryPoint.ImdbClient.CreateListAsync(user.EmbyUserId, cookie, request.ListName, CancellationToken.None).ConfigureAwait(false);
             if (res.Success && !string.IsNullOrEmpty(res.Data))
             {
                 user.ImdbFavoritesListId = res.Data;
@@ -159,12 +160,13 @@ namespace Emby.TmdbImdbSync.Api
 
             var config = Plugin.Instance?.Configuration;
             var user = config?.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
-            if (user == null || string.IsNullOrWhiteSpace(user.ImdbCookie))
+            var cookie = user?.GetEffectiveImdbCookie();
+            if (user == null || string.IsNullOrWhiteSpace(cookie))
             {
                 return new TestResultResponse { Success = false, StatusMessage = "No IMDb cookie configured for this user." };
             }
 
-            var res = await entryPoint.ImdbClient.TestAuthAsync(user.EmbyUserId, user.ImdbCookie, CancellationToken.None).ConfigureAwait(false);
+            var res = await entryPoint.ImdbClient.TestAuthAsync(user.EmbyUserId, cookie, CancellationToken.None).ConfigureAwait(false);
             user.ImdbLastCheckedUtc = DateTime.UtcNow;
             if (res.Success)
             {

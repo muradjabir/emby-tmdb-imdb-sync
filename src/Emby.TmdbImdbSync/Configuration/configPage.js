@@ -99,10 +99,19 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
 
     View.prototype.getUserConfig = function (userId) {
         if (!this.currentConfig || !this.currentConfig.Users) return null;
-        var cleanId = (userId || '').replace(/-/g, '');
+        var cleanId = (userId || '').replace(/-/g, '').toLowerCase();
+        var userObj = this.embyUsers ? this.embyUsers.find(function (u) {
+            return (u.Id || '').replace(/-/g, '').toLowerCase() === cleanId;
+        }) : null;
+        var userName = userObj ? userObj.Name.toLowerCase() : '';
+
         for (var i = 0; i < this.currentConfig.Users.length; i++) {
             var u = this.currentConfig.Users[i];
-            if ((u.EmbyUserId || '').replace(/-/g, '') === cleanId) {
+            var cfgId = (u.EmbyUserId || '').replace(/-/g, '').toLowerCase();
+            var cfgName = (u.EmbyUserName || '').toLowerCase();
+            if (cfgId === cleanId || (userName && cfgName === userName)) {
+                u.EmbyUserId = cleanId;
+                if (userObj) u.EmbyUserName = userObj.Name;
                 return u;
             }
         }
@@ -112,8 +121,8 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
     View.prototype.getOrCreateUserConfig = function (userId) {
         var cfg = this.getUserConfig(userId);
         if (!cfg) {
-            var cleanId = (userId || '').replace(/-/g, '');
-            var userObj = this.embyUsers.find(function (u) { return u.Id.replace(/-/g, '') === cleanId; });
+            var cleanId = (userId || '').replace(/-/g, '').toLowerCase();
+            var userObj = this.embyUsers.find(function (u) { return u.Id.replace(/-/g, '').toLowerCase() === cleanId; });
             cfg = {
                 EmbyUserId: cleanId,
                 EmbyUserName: userObj ? userObj.Name : cleanId,
@@ -128,6 +137,8 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
                 EnableImdbSync: false,
                 SyncImdbWatched: true,
                 SyncImdbFavorites: true,
+                ImdbAtMain: '',
+                ImdbUbidMain: '',
                 ImdbCookie: '',
                 ImdbFavoritesListId: '',
                 ImdbLastStatus: 'Not Tested'
@@ -152,7 +163,30 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         u.EnableImdbSync = view.querySelector('#chkEnableImdb').checked;
         u.SyncImdbWatched = view.querySelector('#chkSyncImdbWatched').checked;
         u.SyncImdbFavorites = view.querySelector('#chkSyncImdbFavorites').checked;
-        u.ImdbCookie = view.querySelector('#txtImdbCookie').value || '';
+
+        var rawAt = (view.querySelector('#txtImdbAtMain').value || '').trim();
+        if (rawAt.toLowerCase().indexOf('at-main=') === 0) {
+            rawAt = rawAt.substring('at-main='.length).trim();
+        }
+        rawAt = rawAt.replace(/;$/, '').trim();
+
+        var rawUbid = (view.querySelector('#txtImdbUbidMain').value || '').trim();
+        if (rawUbid.toLowerCase().indexOf('ubid-main=') === 0) {
+            rawUbid = rawUbid.substring('ubid-main='.length).trim();
+        }
+        rawUbid = rawUbid.replace(/;$/, '').trim();
+
+        u.ImdbAtMain = rawAt;
+        u.ImdbUbidMain = rawUbid;
+
+        if (rawAt && rawUbid) {
+            u.ImdbCookie = 'at-main=' + rawAt + '; ubid-main=' + rawUbid + ';';
+        } else if (rawAt) {
+            u.ImdbCookie = 'at-main=' + rawAt + ';';
+        } else {
+            u.ImdbCookie = '';
+        }
+
         u.ImdbFavoritesListId = view.querySelector('#txtImdbFavoritesListId').value || '';
     };
 
@@ -184,7 +218,17 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         view.querySelector('#chkEnableImdb').checked = !!u.EnableImdbSync;
         view.querySelector('#chkSyncImdbWatched').checked = u.SyncImdbWatched !== false;
         view.querySelector('#chkSyncImdbFavorites').checked = u.SyncImdbFavorites !== false;
-        view.querySelector('#txtImdbCookie').value = u.ImdbCookie || '';
+
+        var atVal = u.ImdbAtMain || '';
+        var ubidVal = u.ImdbUbidMain || '';
+        if ((!atVal || !ubidVal) && u.ImdbCookie) {
+            var atMatch = u.ImdbCookie.match(/at-main=([^;]+)/);
+            if (atMatch && !atVal) atVal = atMatch[1].trim();
+            var ubidMatch = u.ImdbCookie.match(/ubid-main=([^;]+)/);
+            if (ubidMatch && !ubidVal) ubidVal = ubidMatch[1].trim();
+        }
+        view.querySelector('#txtImdbAtMain').value = atVal;
+        view.querySelector('#txtImdbUbidMain').value = ubidVal;
         view.querySelector('#txtImdbFavoritesListId').value = u.ImdbFavoritesListId || '';
 
         var imdbStatusLabel = view.querySelector('#lblImdbStatus');
@@ -290,16 +334,15 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
 
     View.prototype.createImdbList = function () {
         var view = this.view;
-        var cookie = view.querySelector('#txtImdbCookie').value;
+        this.saveCurrentUserToMemory();
+        var u = this.getOrCreateUserConfig(this.currentUserId);
         var statusSpan = view.querySelector('#imdbActionStatus');
         var self = this;
 
-        if (!cookie) {
-            Dashboard.alert({ title: 'IMDb List Creation', message: 'Please paste your IMDb session cookie first.' });
+        if (!u.ImdbCookie) {
+            Dashboard.alert({ title: 'IMDb List Creation', message: 'Please enter both at-main and ubid-main cookies first.' });
             return;
         }
-
-        this.saveCurrentUserToMemory();
         statusSpan.textContent = 'Creating list on IMDb...';
         loading.show();
 

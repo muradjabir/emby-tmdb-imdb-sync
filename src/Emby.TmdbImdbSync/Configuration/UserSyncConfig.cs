@@ -23,9 +23,28 @@ namespace Emby.TmdbImdbSync.Configuration
         public bool EnableImdbSync { get; set; } = false;
         public bool SyncImdbWatched { get; set; } = true;
         public bool SyncImdbFavorites { get; set; } = true;
+        public string ImdbAtMain { get; set; } = string.Empty;
+        public string ImdbUbidMain { get; set; } = string.Empty;
         public string ImdbCookie { get; set; } = string.Empty;
         public string ImdbFavoritesListId { get; set; } = string.Empty;
         public string ImdbLastStatus { get; set; } = "Not Tested";
         public DateTime? ImdbLastCheckedUtc { get; set; }
+
+        public string GetEffectiveImdbCookie()
+        {
+            if (!string.IsNullOrWhiteSpace(ImdbAtMain) && !string.IsNullOrWhiteSpace(ImdbUbidMain))
+            {
+                var at = ImdbAtMain.Trim();
+                if (at.StartsWith("at-main=", StringComparison.OrdinalIgnoreCase)) at = at.Substring("at-main=".Length);
+                at = at.Trim().TrimEnd(';');
+
+                var ubid = ImdbUbidMain.Trim();
+                if (ubid.StartsWith("ubid-main=", StringComparison.OrdinalIgnoreCase)) ubid = ubid.Substring("ubid-main=".Length);
+                ubid = ubid.Trim().TrimEnd(';');
+
+                return $"at-main={at}; ubid-main={ubid};";
+            }
+            return ImdbCookie;
+        }
     }
 }
