@@ -28,6 +28,8 @@ namespace Emby.TmdbImdbSync.Services
         private readonly ILogger _logger;
         private const string BaseUrl = "https://api.themoviedb.org";
 
+        public const string DefaultApiKey = "f6bd687ffa63cd282b6ff2c6877f2669";
+
         public TmdbClient(HttpClient httpClient, ILogger logger)
         {
             _httpClient = httpClient;
@@ -40,18 +42,20 @@ namespace Emby.TmdbImdbSync.Services
             var request = new HttpRequestMessage(method, uri);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            if (!string.IsNullOrWhiteSpace(tokenOrKey))
+            var effectiveTokenOrKey = string.IsNullOrWhiteSpace(tokenOrKey) ? DefaultApiKey : tokenOrKey.Trim();
+
+            // If it looks like a JWT / v4 token (long), use Bearer header
+            if (effectiveTokenOrKey.Length > 40)
             {
-                // If it looks like a JWT / v4 token (long), use Bearer header
-                if (tokenOrKey.Length > 40)
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", effectiveTokenOrKey);
+            }
+            else
+            {
+                // Otherwise v3 api_key query param (avoid duplicating if already present in URI)
+                if (!uri.Query.Contains("api_key="))
                 {
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenOrKey);
-                }
-                else
-                {
-                    // Otherwise v3 api_key query param
                     var separator = uri.Query.Length > 0 ? "&" : "?";
-                    request.RequestUri = new Uri($"{BaseUrl}{path}{separator}api_key={tokenOrKey}");
+                    request.RequestUri = new Uri($"{BaseUrl}{path}{separator}api_key={effectiveTokenOrKey}");
                 }
             }
 
@@ -191,7 +195,7 @@ namespace Emby.TmdbImdbSync.Services
                 var accountUsername = doc4.RootElement.TryGetProperty("username", out var u) ? u.GetString() ?? username : username;
 
                 // Step 5: Check/Create "Emby Watched Movies" List
-                int? watchedListId = await EnsureWatchedListExistsAsync(sessionId, tokenOrKey, cancellationToken).ConfigureAwait(false);
+                int? watchedListId = await EnsureWatchedListExistsAsync(accountId, sessionId, tokenOrKey, cancellationToken).ConfigureAwait(false);
 
                 return new TmdbAuthResult
                 {
@@ -209,11 +213,45 @@ namespace Emby.TmdbImdbSync.Services
             }
         }
 
-        public async Task<int?> EnsureWatchedListExistsAsync(string sessionId, string tokenOrKey, CancellationToken cancellationToken)
+        public async Task<int?> EnsureWatchedListExistsAsync(int accountId, string sessionId, string tokenOrKey, CancellationToken cancellationToken)
         {
             try
             {
-                // Create a v3 list
+                // Step A: Check if "Emby Watched Movies" list already exists for this account
+                if (accountId > 0)
+                {
+                    try
+                    {
+                        var checkReq = CreateRequest(HttpMethod.Get, $"/3/account/{accountId}/lists?session_id={sessionId}", tokenOrKey);
+                        using var checkRes = await SendWithRetryAsync(checkReq, cancellationToken).ConfigureAwait(false);
+                        if (checkRes.IsSuccessStatusCode)
+                        {
+                            var checkJson = await checkRes.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            using var checkDoc = JsonDocument.Parse(checkJson);
+                            if (checkDoc.RootElement.TryGetProperty("results", out var results) && results.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var list in results.EnumerateArray())
+                                {
+                                    if (list.TryGetProperty("name", out var nameProp) &&
+                                        string.Equals(nameProp.GetString(), "Emby Watched Movies", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        if (list.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var existingId))
+                                        {
+                                            _logger.Info("[TmdbClient] Found existing TMDb watched list '{0}' with ID {1}", nameProp.GetString(), existingId);
+                                            return existingId;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn("[TmdbClient] Error querying existing TMDb lists: {0}", ex.Message);
+                    }
+                }
+
+                // Step B: Create a v3 list
                 var req = CreateRequest(HttpMethod.Post, $"/3/list?session_id={sessionId}", tokenOrKey);
                 var payload = JsonSerializer.Serialize(new
                 {
@@ -253,6 +291,9 @@ namespace Emby.TmdbImdbSync.Services
 
             return null;
         }
+
+        public Task<int?> EnsureWatchedListExistsAsync(string sessionId, string tokenOrKey, CancellationToken cancellationToken)
+            => EnsureWatchedListExistsAsync(0, sessionId, tokenOrKey, cancellationToken);
 
         public async Task<bool> SetFavoriteAsync(int accountId, string sessionId, int tmdbMovieId, bool isFavorite, string tokenOrKey, CancellationToken cancellationToken)
         {

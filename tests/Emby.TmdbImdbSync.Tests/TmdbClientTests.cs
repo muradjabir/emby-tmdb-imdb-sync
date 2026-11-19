@@ -54,11 +54,18 @@ namespace Emby.TmdbImdbSync.Tests
                             Content = new StringContent(JsonSerializer.Serialize(new { success = true, session_id = "session456" }))
                         };
                     }
-                    if (uri.Contains("/3/account"))
+                    if (uri.Contains("/3/account") && !uri.Contains("/lists"))
                     {
                         return new HttpResponseMessage(HttpStatusCode.OK)
                         {
                             Content = new StringContent(JsonSerializer.Serialize(new { id = 9999, username = "testuser" }))
+                        };
+                    }
+                    if (uri.Contains("/lists"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new { results = new object[0] }))
                         };
                     }
                     if (uri.Contains("/3/list"))
@@ -146,6 +153,96 @@ namespace Emby.TmdbImdbSync.Tests
 
             Assert.True(success);
             Assert.Equal(2, attempts);
+        }
+
+        [Fact]
+        public async Task SetFavoriteAsync_FallsBackToDefaultApiKey_WhenEmpty()
+        {
+            HttpRequestMessage? capturedRequest = null;
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = req =>
+                {
+                    capturedRequest = req;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(new { status_code = 1, status_message = "Success." }))
+                    };
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new TmdbClient(httpClient, _loggerMock.Object);
+
+            var success = await client.SetFavoriteAsync(1234, "sess", 100, true, "", CancellationToken.None);
+
+            Assert.True(success);
+            Assert.NotNull(capturedRequest);
+            Assert.Contains($"api_key={TmdbClient.DefaultApiKey}", capturedRequest.RequestUri?.ToString());
+        }
+
+        [Fact]
+        public async Task LoginWithCredentialsAsync_ReusesExistingWatchedList_IfFound()
+        {
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = req =>
+                {
+                    var uri = req.RequestUri?.ToString() ?? "";
+                    if (uri.Contains("/authentication/token/new"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new { success = true, request_token = "tok1" }))
+                        };
+                    }
+                    if (uri.Contains("/authentication/token/validate_with_login"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new { success = true, request_token = "tok1" }))
+                        };
+                    }
+                    if (uri.Contains("/authentication/session/new"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new { success = true, session_id = "sess1" }))
+                        };
+                    }
+                    if (uri.Contains("/3/account") && !uri.Contains("/lists"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new { id = 5555, username = "testuser" }))
+                        };
+                    }
+                    if (uri.Contains("/lists"))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(JsonSerializer.Serialize(new
+                            {
+                                results = new[]
+                                {
+                                    new { id = 8888, name = "Emby Watched Movies" }
+                                }
+                            }))
+                        };
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new TmdbClient(httpClient, _loggerMock.Object);
+
+            var result = await client.LoginWithCredentialsAsync("testuser", "testpassword", "", CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.Equal("sess1", result.SessionId);
+            Assert.Equal(5555, result.AccountId);
+            Assert.Equal(8888, result.WatchedListId);
         }
     }
 }

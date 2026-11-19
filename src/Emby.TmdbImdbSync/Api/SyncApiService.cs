@@ -57,12 +57,18 @@ namespace Emby.TmdbImdbSync.Api
             }
 
             var config = Plugin.Instance?.Configuration;
-            var tokenOrKey = config?.TmdbAppReadAccessToken ?? string.Empty;
+            var tokenOrKey = !string.IsNullOrWhiteSpace(request.AppReadTokenOrKey)
+                ? request.AppReadTokenOrKey.Trim()
+                : (!string.IsNullOrWhiteSpace(config?.TmdbAppReadAccessToken) ? config.TmdbAppReadAccessToken.Trim() : TmdbClient.DefaultApiKey);
 
             var result = await entryPoint.TmdbClient.LoginWithCredentialsAsync(request.Username, request.Password, tokenOrKey, CancellationToken.None).ConfigureAwait(false);
 
             if (result.Success && config != null)
             {
+                if (!string.IsNullOrWhiteSpace(request.AppReadTokenOrKey))
+                {
+                    config.TmdbAppReadAccessToken = request.AppReadTokenOrKey.Trim();
+                }
                 var userConfig = config.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
                 if (userConfig != null)
                 {

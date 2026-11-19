@@ -206,6 +206,7 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         var view = this.view;
         var username = view.querySelector('#txtTmdbUsername').value;
         var password = view.querySelector('#txtTmdbPassword').value;
+        var appReadToken = (view.querySelector('#txtTmdbAppReadToken').value || '').trim();
         var statusSpan = view.querySelector('#tmdbLoginStatus');
         var self = this;
 
@@ -218,7 +219,9 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         statusSpan.style.color = '';
         loading.show();
 
-        this.currentConfig.TmdbAppReadAccessToken = view.querySelector('#txtTmdbAppReadToken').value;
+        if (appReadToken) {
+            this.currentConfig.TmdbAppReadAccessToken = appReadToken;
+        }
 
         ApiClient.ajax({
             type: 'POST',
@@ -226,7 +229,8 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
             data: JSON.stringify({
                 EmbyUserId: this.currentUserId,
                 Username: username,
-                Password: password
+                Password: password,
+                AppReadTokenOrKey: appReadToken
             }),
             contentType: 'application/json',
             dataType: 'json'
