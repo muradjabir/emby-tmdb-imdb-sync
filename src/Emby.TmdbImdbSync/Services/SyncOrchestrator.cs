@@ -226,6 +226,8 @@ namespace Emby.TmdbImdbSync.Services
                         ImdbId = resolvedImdbId,
                         IsFavorite = item.IsFavorite,
                         IsPlayed = item.IsPlayed,
+                        ImdbFavoriteSynced = item.IsFavorite && imdbSuccess,
+                        ImdbWatchedSynced = item.IsPlayed && imdbSuccess,
                         LastSyncedUtc = DateTime.UtcNow
                     };
                     _stateStore.SaveState(item.EmbyUserId, userState);

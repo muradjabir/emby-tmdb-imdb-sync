@@ -15,6 +15,8 @@ namespace Emby.TmdbImdbSync.Services
         public string? ImdbId { get; set; }
         public bool IsFavorite { get; set; }
         public bool IsPlayed { get; set; }
+        public bool ImdbWatchedSynced { get; set; }
+        public bool ImdbFavoriteSynced { get; set; }
         public DateTime LastSyncedUtc { get; set; }
     }
 

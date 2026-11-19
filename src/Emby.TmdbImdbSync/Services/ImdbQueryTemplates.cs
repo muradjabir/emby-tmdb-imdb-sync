@@ -31,6 +31,20 @@ mutation RemoveElementFromList($input: RemoveElementFromListInput!) {
   }
 }";
 
+        public string AddWatchedTitleMutation { get; set; } = @"
+mutation AddWatched($titleId: ID!) {
+  addWatchedTitle(titleId: $titleId) {
+    __typename
+  }
+}";
+
+        public string RemoveWatchedTitleMutation { get; set; } = @"
+mutation RemoveWatched($titleId: ID!) {
+  removeWatchedTitle(titleId: $titleId) {
+    __typename
+  }
+}";
+
         public string UpdateTitleUserDataMutation { get; set; } = @"
 mutation UpdateTitleUserData($input: UpdateTitleUserDataInput!) {
   updateTitleUserData(input: $input) {
@@ -60,6 +74,15 @@ query CheckAuth {
                     var loaded = JsonSerializer.Deserialize<ImdbQueryTemplates>(json);
                     if (loaded != null)
                     {
+                        var defaults = new ImdbQueryTemplates();
+                        if (string.IsNullOrWhiteSpace(loaded.AddWatchedTitleMutation))
+                        {
+                            loaded.AddWatchedTitleMutation = defaults.AddWatchedTitleMutation;
+                        }
+                        if (string.IsNullOrWhiteSpace(loaded.RemoveWatchedTitleMutation))
+                        {
+                            loaded.RemoveWatchedTitleMutation = defaults.RemoveWatchedTitleMutation;
+                        }
                         return loaded;
                     }
                 }

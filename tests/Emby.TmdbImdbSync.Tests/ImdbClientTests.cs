@@ -147,5 +147,103 @@ namespace Emby.TmdbImdbSync.Tests
             Assert.True(result.Success);
             Assert.Equal("ls998877665", result.Data);
         }
+
+        [Fact]
+        public async Task SetTitleWatchedAsync_True_SendsAddWatchedTitleMutation()
+        {
+            string? capturedBody = null;
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = req =>
+                {
+                    capturedBody = req.Content?.ReadAsStringAsync().Result;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(new
+                        {
+                            data = new
+                            {
+                                addWatchedTitle = new { __typename = "AddWatchedTitleResponse" }
+                            }
+                        }))
+                    };
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new ImdbClient(httpClient, _loggerMock.Object, () => _templates);
+
+            var result = await client.SetTitleWatchedAsync("userA", "cookie", "tt0111161", true, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.NotNull(capturedBody);
+            Assert.Contains("addWatchedTitle", capturedBody);
+            Assert.Contains("tt0111161", capturedBody);
+        }
+
+        [Fact]
+        public async Task SetTitleWatchedAsync_False_SendsRemoveWatchedTitleMutation()
+        {
+            string? capturedBody = null;
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = req =>
+                {
+                    capturedBody = req.Content?.ReadAsStringAsync().Result;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(new
+                        {
+                            data = new
+                            {
+                                removeWatchedTitle = new { __typename = "RemoveWatchedTitleResponse" }
+                            }
+                        }))
+                    };
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new ImdbClient(httpClient, _loggerMock.Object, () => _templates);
+
+            var result = await client.SetTitleWatchedAsync("userA", "cookie", "tt0111161", false, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.NotNull(capturedBody);
+            Assert.Contains("removeWatchedTitle", capturedBody);
+            Assert.Contains("tt0111161", capturedBody);
+        }
+
+        [Fact]
+        public async Task AddItemToListAsync_SucceedsWithModifiedListOutput()
+        {
+            string? capturedBody = null;
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = req =>
+                {
+                    capturedBody = req.Content?.ReadAsStringAsync().Result;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(new
+                        {
+                            data = new
+                            {
+                                addItemToList = new { listId = "ls4114667793", __typename = "ModifiedListOutput" }
+                            }
+                        }))
+                    };
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new ImdbClient(httpClient, _loggerMock.Object, () => _templates);
+
+            var result = await client.AddItemToListAsync("userA", "cookie", "ls4114667793", "tt0172495", CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.NotNull(capturedBody);
+            Assert.Contains("addItemToList", capturedBody);
+        }
     }
 }

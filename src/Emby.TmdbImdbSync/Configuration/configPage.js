@@ -83,8 +83,25 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
                 select.appendChild(opt);
             });
 
-            if (self.embyUsers.length > 0) {
-                self.currentUserId = self.embyUsers[0].Id.replace(/-/g, '');
+            var defaultUserId = null;
+            if (ApiClient.getCurrentUserId) {
+                var curId = ApiClient.getCurrentUserId();
+                if (curId) {
+                    var cleanCurId = curId.replace(/-/g, '').toLowerCase();
+                    var match = self.embyUsers.find(function (u) {
+                        return u.Id.replace(/-/g, '').toLowerCase() === cleanCurId;
+                    });
+                    if (match) {
+                        defaultUserId = match.Id.replace(/-/g, '');
+                    }
+                }
+            }
+            if (!defaultUserId && self.embyUsers.length > 0) {
+                defaultUserId = self.embyUsers[0].Id.replace(/-/g, '');
+            }
+
+            if (defaultUserId) {
+                self.currentUserId = defaultUserId;
                 select.value = self.currentUserId;
                 self.populateUserFields(self.currentUserId);
             }

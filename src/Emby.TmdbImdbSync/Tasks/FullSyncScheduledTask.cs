@@ -210,14 +210,17 @@ namespace Emby.TmdbImdbSync.Tasks
 
                 // 2. Reconcile IMDb
                 var effectiveImdbCookie = userConfig.GetEffectiveImdbCookie();
+                var stateKey = movie.InternalId.ToString();
+                userState.Movies.TryGetValue(stateKey, out var lastSynced);
+
+                var imdbFavSynced = lastSynced?.ImdbFavoriteSynced ?? false;
+                var imdbWatchSynced = lastSynced?.ImdbWatchedSynced ?? false;
+
                 if (userConfig.EnableImdbSync && !string.IsNullOrWhiteSpace(effectiveImdbCookie) && !string.IsNullOrWhiteSpace(imdbId))
                 {
-                    var stateKey = movie.InternalId.ToString();
-                    userState.Movies.TryGetValue(stateKey, out var lastSynced);
-
                     if (userConfig.SyncImdbFavorites && !string.IsNullOrWhiteSpace(userConfig.ImdbFavoritesListId))
                     {
-                        var favChanged = lastSynced == null || lastSynced.IsFavorite != isFavorite;
+                        var favChanged = lastSynced == null || !imdbFavSynced || lastSynced.IsFavorite != isFavorite;
                         if (favChanged && isFavorite)
                         {
                             var res = await entryPoint.ImdbClient.AddItemToListAsync(embyUserId, effectiveImdbCookie, userConfig.ImdbFavoritesListId, imdbId, cancellationToken).ConfigureAwait(false);
@@ -226,12 +229,20 @@ namespace Emby.TmdbImdbSync.Tasks
                                 userConfig.ImdbLastStatus = "Cookie expired - please refresh";
                                 break; // Don't hammer IMDb if expired
                             }
+                            if (res.Success)
+                            {
+                                imdbFavSynced = true;
+                            }
+                        }
+                        else if (!isFavorite)
+                        {
+                            imdbFavSynced = false;
                         }
                     }
 
                     if (userConfig.SyncImdbWatched)
                     {
-                        var playedChanged = lastSynced == null || lastSynced.IsPlayed != isPlayed;
+                        var playedChanged = lastSynced == null || !imdbWatchSynced || lastSynced.IsPlayed != isPlayed;
                         if (playedChanged && isPlayed)
                         {
                             var res = await entryPoint.ImdbClient.SetTitleWatchedAsync(embyUserId, effectiveImdbCookie, imdbId, true, cancellationToken).ConfigureAwait(false);
@@ -240,6 +251,14 @@ namespace Emby.TmdbImdbSync.Tasks
                                 userConfig.ImdbLastStatus = "Cookie expired - please refresh";
                                 break;
                             }
+                            if (res.Success)
+                            {
+                                imdbWatchSynced = true;
+                            }
+                        }
+                        else if (!isPlayed)
+                        {
+                            imdbWatchSynced = false;
                         }
                     }
                 }
@@ -254,6 +273,8 @@ namespace Emby.TmdbImdbSync.Tasks
                     ImdbId = imdbId,
                     IsFavorite = isFavorite,
                     IsPlayed = isPlayed,
+                    ImdbFavoriteSynced = imdbFavSynced,
+                    ImdbWatchedSynced = imdbWatchSynced,
                     LastSyncedUtc = DateTime.UtcNow
                 };
 

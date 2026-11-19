@@ -289,16 +289,14 @@ namespace Emby.TmdbImdbSync.Services
         public async Task<ImdbClientResult<bool>> SetTitleWatchedAsync(string userKey, string cookie, string imdbId, bool isWatched, CancellationToken cancellationToken)
         {
             var templates = _templatesProvider();
+            var query = isWatched ? templates.AddWatchedTitleMutation : templates.RemoveWatchedTitleMutation;
+            var operationName = isWatched ? "AddWatched" : "RemoveWatched";
             var variables = new
             {
-                input = new
-                {
-                    titleId = imdbId,
-                    hasWatched = isWatched
-                }
+                titleId = imdbId
             };
 
-            var res = await ExecuteGraphQlAsync(userKey, cookie, templates.UpdateTitleUserDataMutation, "UpdateTitleUserData", variables, cancellationToken).ConfigureAwait(false);
+            var res = await ExecuteGraphQlAsync(userKey, cookie, query, operationName, variables, cancellationToken).ConfigureAwait(false);
             return new ImdbClientResult<bool>
             {
                 Success = res.Success,
