@@ -36,6 +36,13 @@ namespace Emby.TmdbImdbSync.Services
             _templatesProvider = templatesProvider;
         }
 
+        public static string CleanCookie(string cookie)
+        {
+            if (string.IsNullOrWhiteSpace(cookie)) return string.Empty;
+            var cleaned = cookie.Replace('\r', ' ').Replace('\n', ' ').Replace('\u2028', ' ').Replace('\u2029', ' ');
+            return System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim();
+        }
+
         private HttpRequestMessage CreateRequest(string cookie, object payload)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, GraphQlEndpoint);
@@ -43,7 +50,7 @@ namespace Emby.TmdbImdbSync.Services
             // Per-request headers - isolated so cookies never bleed across users
             if (!string.IsNullOrWhiteSpace(cookie))
             {
-                request.Headers.TryAddWithoutValidation("Cookie", cookie.Trim());
+                request.Headers.TryAddWithoutValidation("Cookie", CleanCookie(cookie));
             }
 
             request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
@@ -269,7 +276,7 @@ namespace Emby.TmdbImdbSync.Services
                 }
             };
 
-            var res = await ExecuteGraphQlAsync(userKey, cookie, templates.DeleteListItemMutation, "DeleteListItem", variables, cancellationToken).ConfigureAwait(false);
+            var res = await ExecuteGraphQlAsync(userKey, cookie, templates.DeleteListItemMutation, "RemoveElementFromList", variables, cancellationToken).ConfigureAwait(false);
             return new ImdbClientResult<bool>
             {
                 Success = res.Success,
@@ -331,6 +338,19 @@ namespace Emby.TmdbImdbSync.Services
                 {
                     Success = false,
                     ErrorMessage = res.ErrorMessage
+                };
+            }
+
+            if (res.Data != null &&
+                res.Data.RootElement.TryGetProperty("data", out var dataProp) &&
+                dataProp.TryGetProperty("user", out var userProp) &&
+                userProp.ValueKind == JsonValueKind.Null)
+            {
+                return new ImdbClientResult<bool>
+                {
+                    Success = false,
+                    AuthExpired = true,
+                    ErrorMessage = "IMDb cookie is invalid or expired (session not recognized)."
                 };
             }
 

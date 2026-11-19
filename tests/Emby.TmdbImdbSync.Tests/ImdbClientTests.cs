@@ -49,6 +49,30 @@ namespace Emby.TmdbImdbSync.Tests
         }
 
         [Fact]
+        public async Task TestAuthAsync_DetectsNullUserAsAuthExpired()
+        {
+            var mockHandler = new MockHttpMessageHandler
+            {
+                Handler = _ => new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new
+                    {
+                        data = new { user = (object?)null },
+                        extensions = new { authToken = "token.invalid" }
+                    }))
+                }
+            };
+
+            var httpClient = new HttpClient(mockHandler);
+            var client = new ImdbClient(httpClient, _loggerMock.Object, () => _templates);
+
+            var result = await client.TestAuthAsync("userA", "at-main=bad;", CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.True(result.AuthExpired);
+        }
+
+        [Fact]
         public async Task ExecuteGraphQlAsync_DetectsHttp401AsAuthExpired()
         {
             var mockHandler = new MockHttpMessageHandler

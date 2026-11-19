@@ -24,8 +24,8 @@ mutation AddItemToList($input: AddItemToListInput!) {
 }";
 
         public string DeleteListItemMutation { get; set; } = @"
-mutation DeleteListItem($input: DeleteListItemInput!) {
-  deleteListItem(input: $input) {
+mutation RemoveElementFromList($input: RemoveElementFromListInput!) {
+  removeElementFromList(input: $input) {
     listId
     __typename
   }
@@ -45,7 +45,6 @@ mutation UpdateTitleUserData($input: UpdateTitleUserDataInput!) {
         public string CheckAuthQuery { get; set; } = @"
 query CheckAuth {
   user {
-    id
     __typename
   }
 }";
