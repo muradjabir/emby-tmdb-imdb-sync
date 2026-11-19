@@ -32,7 +32,7 @@ namespace Emby.TmdbImdbSync
             {
                 new PluginPageInfo
                 {
-                    Name = "TmdbImdbSyncConfig",
+                    Name = "tmdbimdb",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
                     EnableInMainMenu = true,
                     MenuSection = "server",
@@ -42,7 +42,7 @@ namespace Emby.TmdbImdbSync
                 },
                 new PluginPageInfo
                 {
-                    Name = "TmdbImdbSyncConfigJs",
+                    Name = "tmdbimdbjs",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.js"
                 }
             };

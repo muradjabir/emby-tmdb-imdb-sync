@@ -1,32 +1,32 @@
-<div data-role="page" class="page type-interior pluginConfigurationPage withTabs" data-helpurl="" data-require="emby-input,emby-button,emby-select,emby-checkbox">
-    <div class="content-primary">
-        <div class="verticalSection">
-            <div class="sectionTitleContainer flex align-items-center">
-                <h2 class="sectionTitle">TMDb &amp; IMDb Sync Configuration</h2>
+<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow" data-horizontal="false" data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-controller="__plugin/tmdbimdbjs" data-title="TMDb &amp; IMDb Sync">
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page">
+        <form class="auto-center">
+            <div class="verticalSection">
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">TMDb &amp; IMDb Sync Configuration</h2>
+                </div>
+                <p>Synchronize your movie watched history and favorites between Emby, The Movie Database (TMDb), and IMDb.</p>
             </div>
-            <p>Synchronize your movie watched history and favorites between Emby, The Movie Database (TMDb), and IMDb.</p>
-        </div>
 
-        <form id="tmdbImdbSyncForm">
             <!-- Global Configuration Section -->
             <div class="verticalSection">
                 <h3 class="sectionTitle">Global Settings</h3>
 
                 <div class="inputContainer">
                     <label class="inputLabel" for="txtTmdbAppReadToken">TMDb API Read Access Token (v4 Bearer) or API Key:</label>
-                    <input is="emby-input" type="password" id="txtTmdbAppReadToken" name="TmdbAppReadAccessToken" autocomplete="off" />
+                    <input is="emby-input" type="password" id="txtTmdbAppReadToken" autocomplete="off" />
                     <div class="fieldDescription">Optional if using standard credentials, or enter your TMDb v4 Read Access Token from themoviedb.org/settings/api.</div>
                 </div>
 
                 <div class="inputContainer">
                     <label class="inputLabel" for="numDebounceSeconds">Debounce Time (Seconds):</label>
-                    <input is="emby-input" type="number" id="numDebounceSeconds" name="DebounceSeconds" min="1" max="60" value="2" />
+                    <input is="emby-input" type="number" id="numDebounceSeconds" min="1" max="60" value="2" />
                     <div class="fieldDescription">Time to wait before pushing playback/favorite changes to avoid duplicate requests during rapid clicks.</div>
                 </div>
 
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label>
-                        <input is="emby-checkbox" type="checkbox" id="chkMirrorRemovals" name="MirrorRemovalsOnFullSync" />
+                        <input is="emby-checkbox" type="checkbox" id="chkMirrorRemovals" />
                         <span>Mirror Removals during Scheduled Full Sync</span>
                     </label>
                     <div class="fieldDescription checkboxFieldDescription">If checked, items removed/unfavorited locally in Emby will be removed from TMDb during scheduled full syncs. Defaults to disabled (additive-only) to protect your remote history.</div>
@@ -68,7 +68,7 @@
                     </label>
                 </div>
 
-                <div style="background: rgba(0, 0, 0, 0.15); padding: 1em; border-radius: 6px; margin: 1em 0;">
+                <div style="background: rgba(0, 0, 0, 0.15); padding: 1.2em; border-radius: 8px; margin: 1em 0;">
                     <h4 style="margin-top: 0;">TMDb Credential Login</h4>
                     <p style="font-size: 0.9em; opacity: 0.85;">Log in directly using your TMDb account credentials. A secure session token and watched list will be created automatically.</p>
 
