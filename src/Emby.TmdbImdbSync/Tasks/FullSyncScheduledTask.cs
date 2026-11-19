@@ -102,9 +102,6 @@ namespace Emby.TmdbImdbSync.Tasks
                 return;
             }
 
-            var userConfig = config.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, embyUserId, StringComparison.OrdinalIgnoreCase));
-            if (userConfig == null) return;
-
             User? embyUser = null;
             if (Guid.TryParse(embyUserId, out var userGuid))
             {
@@ -114,6 +111,14 @@ namespace Emby.TmdbImdbSync.Tasks
             {
                 embyUser = _userManager.GetUserById(embyUserId);
             }
+
+            var userConfig = config.Users.FirstOrDefault(u =>
+                string.Equals(u.EmbyUserId, embyUserId, StringComparison.OrdinalIgnoreCase) ||
+                (embyUser != null && string.Equals(u.EmbyUserId, embyUser.Id.ToString("N"), StringComparison.OrdinalIgnoreCase)) ||
+                (embyUser != null && string.Equals(u.EmbyUserId, embyUser.Id.ToString("D"), StringComparison.OrdinalIgnoreCase)) ||
+                (embyUser != null && !string.IsNullOrWhiteSpace(u.EmbyUserName) && string.Equals(u.EmbyUserName, embyUser.Name, StringComparison.OrdinalIgnoreCase)));
+
+            if (userConfig == null) return;
 
             if (embyUser == null)
             {

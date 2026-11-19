@@ -128,7 +128,8 @@ namespace Emby.TmdbImdbSync.Services
             var userGuidHyphen = e.User.Id.ToString("D");
             var userConfig = config.Users.FirstOrDefault(u =>
                 string.Equals(u.EmbyUserId, userGuidStr, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(u.EmbyUserId, userGuidHyphen, StringComparison.OrdinalIgnoreCase));
+                string.Equals(u.EmbyUserId, userGuidHyphen, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(u.EmbyUserName) && string.Equals(u.EmbyUserName, e.User.Name, StringComparison.OrdinalIgnoreCase)));
 
             if (userConfig == null || (!userConfig.EnableTmdbSync && !userConfig.EnableImdbSync))
             {

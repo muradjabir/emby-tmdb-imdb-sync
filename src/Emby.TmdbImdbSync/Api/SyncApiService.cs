@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Emby.TmdbImdbSync.Configuration;
 using Emby.TmdbImdbSync.Services;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Services;
@@ -69,7 +70,7 @@ namespace Emby.TmdbImdbSync.Api
                 {
                     config.TmdbAppReadAccessToken = request.AppReadTokenOrKey.Trim();
                 }
-                var userConfig = config.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
+                var userConfig = FindUserConfig(config, request.EmbyUserId);
                 if (userConfig != null)
                 {
                     userConfig.TmdbUsername = result.Username;
@@ -107,7 +108,7 @@ namespace Emby.TmdbImdbSync.Api
             }
 
             var config = Plugin.Instance?.Configuration;
-            var user = config?.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
+            var user = FindUserConfig(config, request.EmbyUserId);
             if (user == null || string.IsNullOrWhiteSpace(user.TmdbSessionId))
             {
                 return new TestResultResponse { Success = false, StatusMessage = "User has no active TMDb session. Please log in first." };
@@ -133,7 +134,7 @@ namespace Emby.TmdbImdbSync.Api
             }
 
             var config = Plugin.Instance?.Configuration;
-            var user = config?.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
+            var user = FindUserConfig(config, request.EmbyUserId);
             var cookie = user?.GetEffectiveImdbCookie();
             if (user == null || string.IsNullOrWhiteSpace(cookie))
             {
@@ -164,7 +165,7 @@ namespace Emby.TmdbImdbSync.Api
             }
 
             var config = Plugin.Instance?.Configuration;
-            var user = config?.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, request.EmbyUserId, StringComparison.OrdinalIgnoreCase));
+            var user = FindUserConfig(config, request.EmbyUserId);
             var cookie = user?.GetEffectiveImdbCookie();
             if (user == null || string.IsNullOrWhiteSpace(cookie))
             {
@@ -215,6 +216,34 @@ namespace Emby.TmdbImdbSync.Api
                 Success = true,
                 Message = "Immediate sync initiated in background."
             };
+        }
+
+        private UserSyncConfig? FindUserConfig(PluginConfiguration? config, string? userId)
+        {
+            if (config?.Users == null || string.IsNullOrWhiteSpace(userId)) return null;
+
+            var user = config.Users.FirstOrDefault(u => string.Equals(u.EmbyUserId, userId, StringComparison.OrdinalIgnoreCase));
+            if (user != null) return user;
+
+            User? embyUser = null;
+            if (Guid.TryParse(userId, out var userGuid))
+            {
+                embyUser = _userManager.GetUserById(userGuid);
+            }
+            if (embyUser == null)
+            {
+                embyUser = _userManager.GetUserById(userId);
+            }
+
+            if (embyUser != null)
+            {
+                user = config.Users.FirstOrDefault(u =>
+                    string.Equals(u.EmbyUserName, embyUser.Name, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(u.EmbyUserId, embyUser.Id.ToString("N"), StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(u.EmbyUserId, embyUser.Id.ToString("D"), StringComparison.OrdinalIgnoreCase));
+            }
+
+            return user;
         }
     }
 }

@@ -389,6 +389,7 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
                 statusSpan.style.color = '#4caf50';
                 var u = self.getOrCreateUserConfig(self.currentUserId);
                 u.ImdbFavoritesListId = res.ListId;
+                self.saveCurrentUserToMemory();
             } else {
                 statusSpan.textContent = 'Failed: ' + (res.ErrorMessage || 'Check cookie');
                 statusSpan.style.color = '#f44336';
@@ -451,6 +452,19 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         loading.show();
         var view = this.view;
         this.saveCurrentUserToMemory();
+
+        // Deduplicate Users by normalized EmbyUserName so multiple GUID representations don't create ghost profiles
+        var uniqueUsers = [];
+        var seenNames = {};
+        for (var i = 0; i < (this.currentConfig.Users || []).length; i++) {
+            var usr = this.currentConfig.Users[i];
+            var normName = (usr.EmbyUserName || usr.EmbyUserId || '').toLowerCase();
+            if (!seenNames[normName]) {
+                seenNames[normName] = true;
+                uniqueUsers.push(usr);
+            }
+        }
+        this.currentConfig.Users = uniqueUsers;
 
         this.currentConfig.TmdbAppReadAccessToken = view.querySelector('#txtTmdbAppReadToken').value;
         this.currentConfig.DebounceSeconds = parseInt(view.querySelector('#numDebounceSeconds').value, 10) || 2;
