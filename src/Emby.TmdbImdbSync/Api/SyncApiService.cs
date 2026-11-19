@@ -79,6 +79,10 @@ namespace Emby.TmdbImdbSync.Api
                     {
                         userConfig.TmdbWatchedListId = result.WatchedListId;
                     }
+                    if (result.FavoritesListId.HasValue && (!userConfig.TmdbFavoritesListId.HasValue || userConfig.TmdbFavoritesListId == 0))
+                    {
+                        userConfig.TmdbFavoritesListId = result.FavoritesListId;
+                    }
                     Plugin.Instance?.SaveConfiguration();
                 }
             }
@@ -89,6 +93,7 @@ namespace Emby.TmdbImdbSync.Api
                 SessionId = result.SessionId,
                 AccountId = result.AccountId,
                 WatchedListId = result.WatchedListId,
+                FavoritesListId = result.FavoritesListId,
                 ErrorMessage = result.ErrorMessage
             };
         }

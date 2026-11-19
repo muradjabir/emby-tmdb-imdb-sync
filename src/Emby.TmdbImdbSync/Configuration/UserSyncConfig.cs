@@ -18,6 +18,8 @@ namespace Emby.TmdbImdbSync.Configuration
         public string TmdbV4AccountId { get; set; } = string.Empty;
         public int? TmdbWatchedListId { get; set; }
         public string TmdbWatchedListName { get; set; } = "Emby Watched Movies";
+        public int? TmdbFavoritesListId { get; set; }
+        public string TmdbFavoritesListName { get; set; } = "Emby Favorites";
 
         // IMDb Settings
         public bool EnableImdbSync { get; set; } = false;

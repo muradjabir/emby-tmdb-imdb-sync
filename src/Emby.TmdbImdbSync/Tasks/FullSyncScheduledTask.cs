@@ -190,6 +190,11 @@ namespace Emby.TmdbImdbSync.Tasks
                         {
                             await entryPoint.TmdbClient.SetFavoriteAsync(userConfig.TmdbAccountId, userConfig.TmdbSessionId, tmdbId, true, tokenOrKey, cancellationToken).ConfigureAwait(false);
                             remoteTmdbFavorites.Add(tmdbId);
+
+                            if (userConfig.TmdbFavoritesListId.HasValue && userConfig.TmdbFavoritesListId.Value > 0)
+                            {
+                                await entryPoint.TmdbClient.AddToWatchedListAsync(userConfig.TmdbFavoritesListId.Value, userConfig.TmdbSessionId, tmdbId, userConfig.TmdbV4AccessToken, tokenOrKey, cancellationToken).ConfigureAwait(false);
+                            }
                         }
                     }
 

@@ -132,6 +132,8 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
                 TmdbUsername: '',
                 TmdbSessionId: '',
                 TmdbAccountId: 0,
+                TmdbFavoritesListId: null,
+                TmdbFavoritesListName: 'Emby Favorites',
                 TmdbWatchedListId: null,
                 TmdbWatchedListName: 'Emby Watched Movies',
                 EnableImdbSync: false,
@@ -157,6 +159,8 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         u.SyncTmdbFavorites = view.querySelector('#chkSyncTmdbFavorites').checked;
         u.SyncTmdbWatched = view.querySelector('#chkSyncTmdbWatched').checked;
         u.TmdbUsername = view.querySelector('#txtTmdbUsername').value || '';
+        var favListIdVal = parseInt(view.querySelector('#txtTmdbFavoritesListId').value, 10);
+        u.TmdbFavoritesListId = isNaN(favListIdVal) ? null : favListIdVal;
         var listIdVal = parseInt(view.querySelector('#txtTmdbWatchedListId').value, 10);
         u.TmdbWatchedListId = isNaN(listIdVal) ? null : listIdVal;
 
@@ -199,6 +203,7 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
         view.querySelector('#chkSyncTmdbWatched').checked = u.SyncTmdbWatched !== false;
         view.querySelector('#txtTmdbUsername').value = u.TmdbUsername || '';
         view.querySelector('#txtTmdbPassword').value = '';
+        view.querySelector('#txtTmdbFavoritesListId').value = u.TmdbFavoritesListId || '';
         view.querySelector('#txtTmdbWatchedListId').value = u.TmdbWatchedListId || '';
 
         var connectedLabel = view.querySelector('#lblTmdbConnectedUser');
@@ -288,6 +293,10 @@ define(['baseView', 'loading', 'dialogHelper', 'emby-input', 'emby-button', 'emb
                 u.TmdbUsername = username;
                 u.TmdbSessionId = res.SessionId;
                 u.TmdbAccountId = res.AccountId;
+                if (res.FavoritesListId) {
+                    u.TmdbFavoritesListId = res.FavoritesListId;
+                    view.querySelector('#txtTmdbFavoritesListId').value = res.FavoritesListId;
+                }
                 if (res.WatchedListId) {
                     u.TmdbWatchedListId = res.WatchedListId;
                     view.querySelector('#txtTmdbWatchedListId').value = res.WatchedListId;

@@ -105,6 +105,30 @@ namespace Emby.TmdbImdbSync.Services
                                 cancellationToken).ConfigureAwait(false);
 
                             if (!favRes) tmdbSuccess = false;
+
+                            if (userConfig.TmdbFavoritesListId.HasValue && userConfig.TmdbFavoritesListId.Value > 0)
+                            {
+                                if (item.IsFavorite)
+                                {
+                                    await _tmdbClient.AddToWatchedListAsync(
+                                        userConfig.TmdbFavoritesListId.Value,
+                                        userConfig.TmdbSessionId,
+                                        tmdbMovieId,
+                                        userConfig.TmdbV4AccessToken,
+                                        config.TmdbAppReadAccessToken,
+                                        cancellationToken).ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await _tmdbClient.RemoveFromWatchedListAsync(
+                                        userConfig.TmdbFavoritesListId.Value,
+                                        userConfig.TmdbSessionId,
+                                        tmdbMovieId,
+                                        userConfig.TmdbV4AccessToken,
+                                        config.TmdbAppReadAccessToken,
+                                        cancellationToken).ConfigureAwait(false);
+                                }
+                            }
                         }
 
                         if (userConfig.SyncTmdbWatched && playedChanged && userConfig.TmdbWatchedListId.HasValue && userConfig.TmdbWatchedListId.Value > 0)

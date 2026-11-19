@@ -19,6 +19,7 @@ namespace Emby.TmdbImdbSync.Services
         public int AccountId { get; set; }
         public string Username { get; set; } = string.Empty;
         public int? WatchedListId { get; set; }
+        public int? FavoritesListId { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
     }
 
@@ -194,8 +195,9 @@ namespace Emby.TmdbImdbSync.Services
                 var accountId = doc4.RootElement.GetProperty("id").GetInt32();
                 var accountUsername = doc4.RootElement.TryGetProperty("username", out var u) ? u.GetString() ?? username : username;
 
-                // Step 5: Check/Create "Emby Watched Movies" List
-                int? watchedListId = await EnsureWatchedListExistsAsync(accountId, sessionId, tokenOrKey, cancellationToken).ConfigureAwait(false);
+                // Step 5: Check/Create "Emby Watched Movies" and "Emby Favorites" Lists
+                int? watchedListId = await EnsureListExistsAsync(accountId, sessionId, "Emby Watched Movies", "Movies marked as watched in Emby", tokenOrKey, cancellationToken).ConfigureAwait(false);
+                int? favoritesListId = await EnsureListExistsAsync(accountId, sessionId, "Emby Favorites", "Movies favorited in Emby", tokenOrKey, cancellationToken).ConfigureAwait(false);
 
                 return new TmdbAuthResult
                 {
@@ -203,7 +205,8 @@ namespace Emby.TmdbImdbSync.Services
                     SessionId = sessionId,
                     AccountId = accountId,
                     Username = accountUsername,
-                    WatchedListId = watchedListId
+                    WatchedListId = watchedListId,
+                    FavoritesListId = favoritesListId
                 };
             }
             catch (Exception ex)
@@ -213,11 +216,11 @@ namespace Emby.TmdbImdbSync.Services
             }
         }
 
-        public async Task<int?> EnsureWatchedListExistsAsync(int accountId, string sessionId, string tokenOrKey, CancellationToken cancellationToken)
+        public async Task<int?> EnsureListExistsAsync(int accountId, string sessionId, string listName, string description, string tokenOrKey, CancellationToken cancellationToken)
         {
             try
             {
-                // Step A: Check if "Emby Watched Movies" list already exists for this account
+                // Step A: Check if list with name already exists for this account
                 if (accountId > 0)
                 {
                     try
@@ -233,11 +236,11 @@ namespace Emby.TmdbImdbSync.Services
                                 foreach (var list in results.EnumerateArray())
                                 {
                                     if (list.TryGetProperty("name", out var nameProp) &&
-                                        string.Equals(nameProp.GetString(), "Emby Watched Movies", StringComparison.OrdinalIgnoreCase))
+                                        string.Equals(nameProp.GetString(), listName, StringComparison.OrdinalIgnoreCase))
                                     {
                                         if (list.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var existingId))
                                         {
-                                            _logger.Info("[TmdbClient] Found existing TMDb watched list '{0}' with ID {1}", nameProp.GetString(), existingId);
+                                            _logger.Info("[TmdbClient] Found existing TMDb list '{0}' with ID {1}", nameProp.GetString(), existingId);
                                             return existingId;
                                         }
                                     }
@@ -255,8 +258,8 @@ namespace Emby.TmdbImdbSync.Services
                 var req = CreateRequest(HttpMethod.Post, $"/3/list?session_id={sessionId}", tokenOrKey);
                 var payload = JsonSerializer.Serialize(new
                 {
-                    name = "Emby Watched Movies",
-                    description = "Movies marked as watched in Emby",
+                    name = listName,
+                    description = description,
                     language = "en"
                 });
                 req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -281,19 +284,22 @@ namespace Emby.TmdbImdbSync.Services
                 }
                 else
                 {
-                    _logger.Warn("[TmdbClient] Watched list creation response: {0}", resJson);
+                    _logger.Warn("[TmdbClient] List '{0}' creation response: {1}", listName, resJson);
                 }
             }
             catch (Exception ex)
             {
-                _logger.Warn("[TmdbClient] Could not automatically create watched list: {0}", ex.Message);
+                _logger.Warn("[TmdbClient] Could not automatically create list '{0}': {1}", listName, ex.Message);
             }
 
             return null;
         }
 
+        public Task<int?> EnsureWatchedListExistsAsync(int accountId, string sessionId, string tokenOrKey, CancellationToken cancellationToken)
+            => EnsureListExistsAsync(accountId, sessionId, "Emby Watched Movies", "Movies marked as watched in Emby", tokenOrKey, cancellationToken);
+
         public Task<int?> EnsureWatchedListExistsAsync(string sessionId, string tokenOrKey, CancellationToken cancellationToken)
-            => EnsureWatchedListExistsAsync(0, sessionId, tokenOrKey, cancellationToken);
+            => EnsureListExistsAsync(0, sessionId, "Emby Watched Movies", "Movies marked as watched in Emby", tokenOrKey, cancellationToken);
 
         public async Task<bool> SetFavoriteAsync(int accountId, string sessionId, int tmdbMovieId, bool isFavorite, string tokenOrKey, CancellationToken cancellationToken)
         {

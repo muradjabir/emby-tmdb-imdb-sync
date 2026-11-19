@@ -33,6 +33,7 @@ namespace Emby.TmdbImdbSync.Api
         public string SessionId { get; set; } = string.Empty;
         public int AccountId { get; set; }
         public int? WatchedListId { get; set; }
+        public int? FavoritesListId { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
     }
 
