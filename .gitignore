@@ -1,8 +1,21 @@
+# Build outputs
 bin/
 obj/
 dist/
+
+# IDE files
 .idea/
 .vscode/
 *.user
 *.suo
 *.tmp
+.DS_Store
+
+# User configuration and state
+*.xml
+state/
+*.db
+*.db-shm
+*.db-wal
+imdb_queries.json
+*.log
